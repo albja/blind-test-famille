@@ -1,0 +1,188 @@
+:root {
+    --bg: #0f1226;
+    --card: #1a1f3b;
+    --text: #f4f7ff;
+    --muted: #a9b2d0;
+    --primary: #5b8cff;
+    --primary-hover: #4c7cff;
+    --border: #2b335f;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Inter, Avenir, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at top, #1b2250, var(--bg));
+    color: var(--text);
+    min-height: 100vh;
+}
+
+.app {
+    width: min(760px, 92vw);
+    margin: 40px auto;
+}
+
+.header {
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.header p {
+    color: var(--muted);
+}
+
+.card {
+    background: color-mix(in srgb, var(--card) 88%, black);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.field {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+label {
+    font-weight: 600;
+}
+
+input,
+select,
+audio {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    background: #111735;
+    color: var(--text);
+    font-size: 1rem;
+}
+
+small {
+    color: var(--muted);
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.btn {
+    border: 1px solid var(--border);
+    background: #1e2752;
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: filter 0.15s;
+}
+
+.btn:hover {
+    filter: brightness(1.15);
+}
+
+.btn.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.btn.primary:hover {
+    background: var(--primary-hover);
+}
+
+.answer {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: #ffe69a;
+    font-weight: 600;
+}
+
+audio {
+    margin-top: 10px;
+    padding: 0;
+}
+
+.loading {
+    color: var(--muted);
+    font-style: italic;
+    animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.4rem;
+    }
+    .actions {
+        flex-direction: column;
+    }
+}
+
+/* ============= Mode TV (grands écrans) ============= */
+@media (min-width: 1200px) {
+    body {
+        font-size: 1.3rem;
+    }
+    .app {
+        width: min(900px, 80vw);
+        margin: 60px auto;
+    }
+    .header h1 {
+        font-size: 3rem;
+    }
+    .btn {
+        padding: 16px 28px;
+        font-size: 1.2rem;
+    }
+    .card {
+        padding: 36px;
+    }
+    input,
+    select {
+        padding: 14px 16px;
+        font-size: 1.2rem;
+    }
+    .answer {
+        font-size: 1.4rem;
+        padding: 16px;
+    }
+    audio {
+        height: 54px;
+    }
+}

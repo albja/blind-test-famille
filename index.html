@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Blind Test Famille</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <main class="app">
+            <header class="header">
+                <h1>🎵 Blind Test Famille</h1>
+                <p>
+                    Choisissez une catégorie, un nombre de chansons, puis lancez
+                    la partie !
+                </p>
+            </header>
+
+            <!-- Écran de configuration -->
+            <section id="setup-card" class="card">
+                <div class="field">
+                    <label for="category-select">Catégorie</label>
+                    <select id="category-select"></select>
+                </div>
+
+                <div class="field">
+                    <label for="song-count">Nombre de chansons</label>
+                    <input id="song-count" type="number" min="1" value="5" />
+                    <small id="song-count-hint"></small>
+                </div>
+
+                <button id="start-btn" class="btn primary">Démarrer</button>
+            </section>
+
+            <!-- Écran de jeu -->
+            <section id="game-card" class="card hidden" aria-live="polite">
+                <div class="status-row">
+                    <span id="progress"></span>
+                    <span id="category-name"></span>
+                </div>
+
+                <h2 id="song-title">Extrait #1</h2>
+
+                <p id="loading" class="loading hidden">
+                    ⏳ Chargement de l'extrait…
+                </p>
+                <audio id="player" controls preload="metadata"></audio>
+
+                <div class="actions">
+                    <button id="reveal-btn" class="btn">
+                        Révéler la réponse
+                    </button>
+                    <button id="next-btn" class="btn primary">
+                        Chanson suivante
+                    </button>
+                </div>
+
+                <p id="answer" class="answer hidden"></p>
+            </section>
+
+            <!-- Écran de fin -->
+            <section id="end-card" class="card hidden">
+                <h2>Partie terminée 🎉</h2>
+                <p id="end-summary"></p>
+                <button id="restart-btn" class="btn primary">Rejouer</button>
+            </section>
+        </main>
+
+        <script src="script.js"></script>
+    </body>
+</html>
