@@ -466,18 +466,31 @@ function jsonp(url) {
 }
 
 /**
+ * Mots-clés indiquant un remix/cover à exclure des résultats.
+ */
+const REMIX_KEYWORDS = /remix|techno|club mix|karaoke|karaoké|8[- ]?bit|nightcore|sped up|slowed|reverb|cover|metal|rock version|instrumental/i;
+
+/**
  * Recherche un extrait de 30s sur Deezer à partir du titre et de l'artiste.
  * Retourne l'URL du preview MP3 ou null si introuvable.
+ * Filtre automatiquement les remixes et reprises.
  */
 async function fetchDeezerPreview(title, artist) {
   try {
     const query = encodeURIComponent(`${artist} ${title}`);
-    const data = await jsonp(`https://api.deezer.com/search?q=${query}&limit=3`);
+    const data = await jsonp(`https://api.deezer.com/search?q=${query}&limit=10`);
 
     if (data && data.data && data.data.length > 0) {
-      // Prendre le premier résultat avec un preview disponible
-      const track = data.data.find((t) => t.preview) || data.data[0];
-      return track.preview || null;
+      // Filtrer les remixes/covers
+      const validTracks = data.data.filter((t) => {
+        const fullTitle = (t.title || "").toLowerCase();
+        const albumName = (t.album && t.album.title || "").toLowerCase();
+        return t.preview && !REMIX_KEYWORDS.test(fullTitle) && !REMIX_KEYWORDS.test(albumName);
+      });
+
+      // Prendre le premier résultat propre, sinon le premier avec preview
+      const track = validTracks[0] || data.data.find((t) => t.preview);
+      return track ? track.preview : null;
     }
   } catch (err) {
     console.warn("Deezer API error:", err.message);
