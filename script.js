@@ -471,22 +471,40 @@ function jsonp(url) {
 const REMIX_KEYWORDS = /remix|techno|club mix|karaoke|karaoké|8[- ]?bit|nightcore|sped up|slowed|reverb|cover|metal|rock version|instrumental/i;
 
 /**
+ * Mots-clés anglais typiques dans les titres Disney EN (pour les exclure quand on veut du FR).
+ */
+const ENGLISH_KEYWORDS = /\b(the|of|from|let it go|under the sea|a whole new world|be prepared|i just can't wait|colors of the wind|part of your world|beauty and the beast|circle of life|friend like me|i'll make a man|reflection|when you wish|bibbidi bobbidi|prince ali)\b/i;
+
+/**
  * Recherche un extrait de 30s sur Deezer à partir du titre et de l'artiste.
  * Retourne l'URL du preview MP3 ou null si introuvable.
- * Filtre automatiquement les remixes et reprises.
+ * Filtre les remixes et, pour Disney FR, force les versions françaises.
  */
-async function fetchDeezerPreview(title, artist) {
+async function fetchDeezerPreview(title, artist, forcefrench = false) {
   try {
-    const query = encodeURIComponent(`${artist} ${title}`);
-    const data = await jsonp(`https://api.deezer.com/search?q=${query}&limit=10`);
+    // Pour Disney FR : ajouter "version française" à la recherche
+    const suffix = forcefrench ? " version française" : "";
+    const query = encodeURIComponent(`${artist} ${title}${suffix}`);
+    const data = await jsonp(`https://api.deezer.com/search?q=${query}&limit=15`);
 
     if (data && data.data && data.data.length > 0) {
       // Filtrer les remixes/covers
-      const validTracks = data.data.filter((t) => {
+      let validTracks = data.data.filter((t) => {
         const fullTitle = (t.title || "").toLowerCase();
         const albumName = (t.album && t.album.title || "").toLowerCase();
         return t.preview && !REMIX_KEYWORDS.test(fullTitle) && !REMIX_KEYWORDS.test(albumName);
       });
+
+      // Pour Disney FR : exclure les titres en anglais
+      if (forcefrench && validTracks.length > 0) {
+        const frenchTracks = validTracks.filter((t) => {
+          const fullTitle = (t.title || "");
+          return !ENGLISH_KEYWORDS.test(fullTitle);
+        });
+        if (frenchTracks.length > 0) {
+          validTracks = frenchTracks;
+        }
+      }
 
       // Prendre le premier résultat propre, sinon le premier avec preview
       const track = validTracks[0] || data.data.find((t) => t.preview);
@@ -637,8 +655,10 @@ async function renderCurrentSong() {
   revealBtn.disabled = false;
 
   // Chargement de l'extrait depuis Deezer
+  // Forcer le français pour la catégorie Disney
+  const forceFR = selectedCategory.toLowerCase().includes("disney");
   setLoading(true);
-  const previewUrl = await fetchDeezerPreview(song.title, song.artist);
+  const previewUrl = await fetchDeezerPreview(song.title, song.artist, forceFR);
   setLoading(false);
 
   if (previewUrl) {
