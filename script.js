@@ -471,49 +471,68 @@ function jsonp(url) {
 const REMIX_KEYWORDS = /remix|techno|club mix|karaoke|karaoké|8[- ]?bit|nightcore|sped up|slowed|reverb|cover|metal|rock version|instrumental/i;
 
 /**
- * Mots-clés anglais typiques dans les titres Disney EN (pour les exclure quand on veut du FR).
- */
-const ENGLISH_KEYWORDS = /\b(the|of|from|let it go|under the sea|a whole new world|be prepared|i just can't wait|colors of the wind|part of your world|beauty and the beast|circle of life|friend like me|i'll make a man|reflection|when you wish|bibbidi bobbidi|prince ali)\b/i;
-
-/**
  * Recherche un extrait de 30s sur Deezer à partir du titre et de l'artiste.
- * Retourne l'URL du preview MP3 ou null si introuvable.
- * Filtre les remixes et, pour Disney FR, force les versions françaises.
+ * Stratégie multi-essais pour maximiser les chances de trouver un preview.
  */
 async function fetchDeezerPreview(title, artist, forcefrench = false) {
+  // Essai 1 : recherche avec artiste + titre
+  let url = await tryDeezerSearch(`${artist} ${title}`, forcefrench);
+  if (url) return url;
+
+  // Essai 2 : recherche avec juste le titre (plus large)
+  url = await tryDeezerSearch(title, forcefrench);
+  if (url) return url;
+
+  // Essai 3 : si on forçait le français, réessayer sans filtre langue
+  if (forcefrench) {
+    url = await tryDeezerSearch(`${artist} ${title}`, false);
+    if (url) return url;
+  }
+
+  return null;
+}
+
+/**
+ * Effectue une recherche Deezer et retourne l'URL du preview ou null.
+ */
+async function tryDeezerSearch(searchQuery, filterFrench) {
   try {
-    // Pour Disney FR : ajouter "version française" à la recherche
-    const suffix = forcefrench ? " version française" : "";
-    const query = encodeURIComponent(`${artist} ${title}${suffix}`);
+    const query = encodeURIComponent(searchQuery);
     const data = await jsonp(`https://api.deezer.com/search?q=${query}&limit=15`);
 
-    if (data && data.data && data.data.length > 0) {
-      // Filtrer les remixes/covers
-      let validTracks = data.data.filter((t) => {
-        const fullTitle = (t.title || "").toLowerCase();
-        const albumName = (t.album && t.album.title || "").toLowerCase();
-        return t.preview && !REMIX_KEYWORDS.test(fullTitle) && !REMIX_KEYWORDS.test(albumName);
+    if (!data || !data.data || data.data.length === 0) return null;
+
+    // Filtrer les remixes
+    let validTracks = data.data.filter((t) => {
+      const fullTitle = (t.title || "").toLowerCase();
+      const albumName = ((t.album && t.album.title) || "").toLowerCase();
+      return t.preview && !REMIX_KEYWORDS.test(fullTitle) && !REMIX_KEYWORDS.test(albumName);
+    });
+
+    // Pour Disney FR : préférer les pistes dont le titre contient des caractères français
+    // ou dont l'album contient "disney" en excluant ceux purement anglais
+    if (filterFrench && validTracks.length > 1) {
+      const frenchTracks = validTracks.filter((t) => {
+        const title = (t.title || "").toLowerCase();
+        // Exclure les pistes dont le titre est clairement en anglais
+        const isEnglish = /^(let it go|under the sea|a whole new world|be prepared|circle of life|friend like me|part of your world|colors of the wind|reflection|when you wish|how far i'll go|into the unknown|surface pressure|we don't talk about bruno|evermore)\b/i.test(title);
+        return !isEnglish;
       });
-
-      // Pour Disney FR : exclure les titres en anglais
-      if (forcefrench && validTracks.length > 0) {
-        const frenchTracks = validTracks.filter((t) => {
-          const fullTitle = (t.title || "");
-          return !ENGLISH_KEYWORDS.test(fullTitle);
-        });
-        if (frenchTracks.length > 0) {
-          validTracks = frenchTracks;
-        }
+      if (frenchTracks.length > 0) {
+        validTracks = frenchTracks;
       }
-
-      // Prendre le premier résultat propre, sinon le premier avec preview
-      const track = validTracks[0] || data.data.find((t) => t.preview);
-      return track ? track.preview : null;
     }
+
+    // Retourner le premier résultat valide
+    if (validTracks.length > 0) return validTracks[0].preview;
+
+    // Fallback : n'importe quel résultat avec preview
+    const fallback = data.data.find((t) => t.preview);
+    return fallback ? fallback.preview : null;
   } catch (err) {
-    console.warn("Deezer API error:", err.message);
+    console.warn("Deezer search error:", err.message);
+    return null;
   }
-  return null;
 }
 
 /* ============= Éléments DOM ============= */
