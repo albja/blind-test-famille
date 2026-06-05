@@ -27,7 +27,7 @@ const quizData = {
     { title: "Le festin", artist: "Camille" },
     { title: "Pour la première fois", artist: "Anaïs Delva" },
     { title: "Ne m'oublies pas", artist: "Coco" },
-    { title: "Le bleu lumière", artist: "Anaïs Delva" },
+    { title: "Le bleu lumière", artist: "Cerise Calixte" },
     { title: "Comme un homme", artist: "Mulan" },
     { title: "Infernal", artist: "Le Bossu de Notre Dame" },
     { title: "Au bout du rêve", artist: "Aladdin" },
@@ -48,8 +48,8 @@ const quizData = {
     { title: "Les cloches de Notre-Dame", artist: "Le Bossu de Notre-Dame" },
     { title: "Ton meilleur ami", artist: "Aladdin" },
     { title: "Un monde idéal", artist: "Aladdin" },
-    { title: "Loin de tout", artist: "Cerise Calil" },
-    { title: "Notre terre", artist: "Cerise Calil" },
+    { title: "Je suis ton ami", artist: "Toy Story" },
+    { title: "Là-haut", artist: "Michael Giacchino" },
     { title: "Avez-vous déjà vu", artist: "Bambi" },
     { title: "Supercalifragilisticexpialidocious", artist: "Mary Poppins" },
     { title: "Bibbidi-Bobbidi-Boo", artist: "Cendrillon" },
@@ -59,7 +59,7 @@ const quizData = {
     { title: "Un beau jour", artist: "Winnie l'ourson" },
     { title: "Evermore", artist: "Josh Groban" },
     { title: "Surface Pressure", artist: "Jessica Darrow" },
-    { title: "Ma place dans ce monde", artist: "Encanto" }
+    { title: "Je veux y croire", artist: "Raiponce" }
   ],
   Pop: [
     { title: "Blinding Lights", artist: "The Weeknd" },
@@ -472,67 +472,28 @@ const REMIX_KEYWORDS = /remix|techno|club mix|karaoke|karaoké|8[- ]?bit|nightco
 
 /**
  * Recherche un extrait de 30s sur Deezer à partir du titre et de l'artiste.
- * Stratégie multi-essais pour maximiser les chances de trouver un preview.
+ * Retourne l'URL du preview MP3 ou null si introuvable.
  */
-async function fetchDeezerPreview(title, artist, forcefrench = false) {
-  // Essai 1 : recherche avec artiste + titre
-  let url = await tryDeezerSearch(`${artist} ${title}`, forcefrench);
-  if (url) return url;
-
-  // Essai 2 : recherche avec juste le titre (plus large)
-  url = await tryDeezerSearch(title, forcefrench);
-  if (url) return url;
-
-  // Essai 3 : si on forçait le français, réessayer sans filtre langue
-  if (forcefrench) {
-    url = await tryDeezerSearch(`${artist} ${title}`, false);
-    if (url) return url;
-  }
-
-  return null;
-}
-
-/**
- * Effectue une recherche Deezer et retourne l'URL du preview ou null.
- */
-async function tryDeezerSearch(searchQuery, filterFrench) {
+async function fetchDeezerPreview(title, artist) {
   try {
-    const query = encodeURIComponent(searchQuery);
-    const data = await jsonp(`https://api.deezer.com/search?q=${query}&limit=15`);
+    const query = encodeURIComponent(`${artist} ${title}`);
+    const data = await jsonp(`https://api.deezer.com/search?q=${query}&limit=10`);
 
-    if (!data || !data.data || data.data.length === 0) return null;
-
-    // Filtrer les remixes
-    let validTracks = data.data.filter((t) => {
-      const fullTitle = (t.title || "").toLowerCase();
-      const albumName = ((t.album && t.album.title) || "").toLowerCase();
-      return t.preview && !REMIX_KEYWORDS.test(fullTitle) && !REMIX_KEYWORDS.test(albumName);
-    });
-
-    // Pour Disney FR : préférer les pistes dont le titre contient des caractères français
-    // ou dont l'album contient "disney" en excluant ceux purement anglais
-    if (filterFrench && validTracks.length > 1) {
-      const frenchTracks = validTracks.filter((t) => {
-        const title = (t.title || "").toLowerCase();
-        // Exclure les pistes dont le titre est clairement en anglais
-        const isEnglish = /^(let it go|under the sea|a whole new world|be prepared|circle of life|friend like me|part of your world|colors of the wind|reflection|when you wish|how far i'll go|into the unknown|surface pressure|we don't talk about bruno|evermore)\b/i.test(title);
-        return !isEnglish;
+    if (data && data.data && data.data.length > 0) {
+      // Filtrer les remixes
+      const validTracks = data.data.filter((t) => {
+        const fullTitle = (t.title || "").toLowerCase();
+        const albumName = ((t.album && t.album.title) || "").toLowerCase();
+        return t.preview && !REMIX_KEYWORDS.test(fullTitle) && !REMIX_KEYWORDS.test(albumName);
       });
-      if (frenchTracks.length > 0) {
-        validTracks = frenchTracks;
-      }
+
+      const track = validTracks[0] || data.data.find((t) => t.preview);
+      return track ? track.preview : null;
     }
-
-    // Retourner le premier résultat valide
-    if (validTracks.length > 0) return validTracks[0].preview;
-
-    // Fallback : n'importe quel résultat avec preview
-    const fallback = data.data.find((t) => t.preview);
-    return fallback ? fallback.preview : null;
   } catch (err) {
-    console.warn("Deezer search error:", err.message);
-    return null;
+    console.warn("Deezer API error:", err.message);
   }
+  return null;
 }
 
 /* ============= Éléments DOM ============= */
@@ -674,10 +635,8 @@ async function renderCurrentSong() {
   revealBtn.disabled = false;
 
   // Chargement de l'extrait depuis Deezer
-  // Forcer le français pour la catégorie Disney
-  const forceFR = selectedCategory.toLowerCase().includes("disney");
   setLoading(true);
-  const previewUrl = await fetchDeezerPreview(song.title, song.artist, forceFR);
+  const previewUrl = await fetchDeezerPreview(song.title, song.artist);
   setLoading(false);
 
   if (previewUrl) {
